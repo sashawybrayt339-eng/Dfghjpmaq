@@ -42,13 +42,42 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Generate Debug Keystore in Godot Directory
+      - name: Generate Debug Keystore
         run: |
-          # ساخت فایل کلید
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
-          # کپی کردن دقیقاً به پوشه‌ای که Godot انتظار داره
+          # ساخت کلید در پوشه پیش‌فرض Godot
           mkdir -p ~/.local/share/godot/keystores
           cp debug.keystore ~/.local/share/godot/keystores/debug.keystore
+
+      - name: Force Create Export Presets
+        run: |
+          cd /tmp/godot_project
+          # ما خودمون فایل تنظیمات رو می‌سازیم تا Godot مجبور باشه ازش استفاده کنه
+          cat > export_presets.cfg << 'EOF'
+[preset.0]
+
+name="Android"
+platform="Android"
+runnable=true
+advanced_options=false
+dedicated_server=false
+custom_features=""
+export_filter="all_resources"
+include_filter=""
+exclude_filter=""
+export_path="app-debug.apk"
+encryption_include_filters=""
+encryption_exclude_filters=""
+encrypt_pck=false
+encrypt_directory=false
+
+[preset.0.options]
+
+gradle_build/use_gradle_build=true
+gradle_build/export_format=0
+gradle_build/min_sdk=""
+gradle_build/target_sdk=""
+EOF
 
       - name: Export APK
         env:
@@ -56,10 +85,10 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd /tmp/godot_project
-          # اجرای Godot با --verbose برای اینکه مجبور بشه پروژه رو بخونه
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --editor --quit || true
+          # ایمپورت پروژه
+          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit || true
           
-          # دستور خروجی
+          # خروجی گرفتن
           /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --export-debug "Android" app-debug.apk
 
       - name: Upload APK
