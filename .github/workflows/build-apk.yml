@@ -23,7 +23,7 @@ jobs:
           if [ $(ls -1 /tmp/godot_project | wc -l) -eq 1 ] && [ -d "/tmp/godot_project/$(ls -1 /tmp/godot_project | head -n 1)" ]; then
             mv /tmp/godot_project/*/* /tmp/godot_project/
           fi
-          find /tmp/godot_project/addons/fusion -type f 2>/dev/null || true
+          ls -la /tmp/godot_project/
 
       - name: Download Godot and Export Templates
         run: |
@@ -42,9 +42,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Generate Debug Keystore
+      - name: Generate Debug Keystore in Godot Directory
         run: |
+          # ساخت فایل کلید
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          # کپی کردن دقیقاً به پوشه‌ای که Godot انتظار داره
           mkdir -p ~/.local/share/godot/keystores
           cp debug.keystore ~/.local/share/godot/keystores/debug.keystore
 
@@ -54,16 +56,10 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd /tmp/godot_project
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit
+          # اجرای Godot با --verbose برای اینکه مجبور بشه پروژه رو بخونه
+          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --verbose --editor --quit || true
           
-          cat >> export_presets.cfg << 'EOF'
-
-          [preset.0.options.debug_keystore]
-          keystore_path="~/.local/share/godot/keystores/debug.keystore"
-          keystore_user="androiddebugkey"
-          keystore_password="android"
-          EOF
-
+          # دستور خروجی
           /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --export-debug "Android" app-debug.apk
 
       - name: Upload APK
