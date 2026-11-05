@@ -47,12 +47,13 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd /tmp/godot_project
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit || true
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --export-debug "Android" app-debug.apk || true
+          # حذف || true تا اگر ارور داد، متوقف شود
+          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit
+          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --export-debug "Android" app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Godot-Game-APK
-          path: /tmp/godot_project/*.apk
-          if-no-files-found: warn
+          path: /tmp/godot_project/app-debug.apk
+          if-no-files-found: error
