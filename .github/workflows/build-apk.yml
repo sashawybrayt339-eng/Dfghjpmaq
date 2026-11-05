@@ -45,39 +45,13 @@ jobs:
       - name: Generate Debug Keystore
         run: |
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
-          # ساخت کلید در پوشه پیش‌فرض Godot
           mkdir -p ~/.local/share/godot/keystores
           cp debug.keystore ~/.local/share/godot/keystores/debug.keystore
 
       - name: Force Create Export Presets
         run: |
           cd /tmp/godot_project
-          # ما خودمون فایل تنظیمات رو می‌سازیم تا Godot مجبور باشه ازش استفاده کنه
-          cat > export_presets.cfg << 'EOF'
-[preset.0]
-
-name="Android"
-platform="Android"
-runnable=true
-advanced_options=false
-dedicated_server=false
-custom_features=""
-export_filter="all_resources"
-include_filter=""
-exclude_filter=""
-export_path="app-debug.apk"
-encryption_include_filters=""
-encryption_exclude_filters=""
-encrypt_pck=false
-encrypt_directory=false
-
-[preset.0.options]
-
-gradle_build/use_gradle_build=true
-gradle_build/export_format=0
-gradle_build/min_sdk=""
-gradle_build/target_sdk=""
-EOF
+          printf '[preset.0]\nname="Android"\nplatform="Android"\nrunnable=true\nadvanced_options=false\ndedicated_server=false\ncustom_features=""\nexport_filter="all_resources"\ninclude_filter=""\nexclude_filter=""\nexport_path="app-debug.apk"\nencryption_include_filters=""\nencryption_exclude_filters=""\nencrypt_pck=false\nencrypt_directory=false\n\n[preset.0.options]\ngradle_build/use_gradle_build=true\ngradle_build/export_format=0\ngradle_build/min_sdk=""\ngradle_build/target_sdk=""\nkeystore_path="~/.local/share/godot/keystores/debug.keystore"\nkeystore_user="androiddebugkey"\nkeystore_password="android"\n' > export_presets.cfg
 
       - name: Export APK
         env:
@@ -85,7 +59,8 @@ EOF
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd /tmp/godot_project
-          # ایمپورت پروژه
+          # ایمپورت پروژه (دوبار اجرا میکنیم تا مطمئن بشیم فایل‌های Photon و Godot کامل لود میشن)
+          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit || true
           /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit || true
           
           # خروجی گرفتن
