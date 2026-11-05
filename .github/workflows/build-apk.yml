@@ -47,24 +47,28 @@ jobs:
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
           mkdir -p ~/.local/share/godot/keystores
           cp debug.keystore ~/.local/share/godot/keystores/debug.keystore
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
 
-      - name: Force Create Export Presets
+      - name: Create Export Preset Configuration
         run: |
           cd /tmp/godot_project
           printf '[preset.0]\nname="Android"\nplatform="Android"\nrunnable=true\nadvanced_options=false\ndedicated_server=false\ncustom_features=""\nexport_filter="all_resources"\ninclude_filter=""\nexclude_filter=""\nexport_path="app-debug.apk"\nencryption_include_filters=""\nencryption_exclude_filters=""\nencrypt_pck=false\nencrypt_directory=false\n\n[preset.0.options]\ngradle_build/use_gradle_build=true\ngradle_build/export_format=0\ngradle_build/min_sdk=""\ngradle_build/target_sdk=""\nkeystore_path="~/.local/share/godot/keystores/debug.keystore"\nkeystore_user="androiddebugkey"\nkeystore_password="android"\n' > export_presets.cfg
 
-      - name: Export APK
+      - name: Export APK with Android Build Template
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          GODOT_DEBUG_KEYSTORE: /home/runner/.local/share/godot/keystores/debug.keystore
+          GODOT_DEBUG_KEYSTORE_USER: androiddebugkey
+          GODOT_DEBUG_KEYSTORE_PASS: android
         run: |
           cd /tmp/godot_project
-          # ایمپورت پروژه (دوبار اجرا میکنیم تا مطمئن بشیم فایل‌های Photon و Godot کامل لود میشن)
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit || true
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit || true
+          GODOT_BIN=/home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64
           
-          # خروجی گرفتن
-          /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --export-debug "Android" app-debug.apk
+          $GODOT_BIN --headless --editor --quit || true
+          
+          $GODOT_BIN --headless --export-debug "Android" app-debug.apk --install-android-template
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
