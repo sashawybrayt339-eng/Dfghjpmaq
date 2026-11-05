@@ -23,6 +23,8 @@ jobs:
           if [ $(ls -1 /tmp/godot_project | wc -l) -eq 1 ] && [ -d "/tmp/godot_project/$(ls -1 /tmp/godot_project | head -n 1)" ]; then
             mv /tmp/godot_project/*/* /tmp/godot_project/
           fi
+          # این خط مطمئن میشه فایل‌های Photon درست باز شدن
+          find /tmp/godot_project/addons/fusion -type f 2>/dev/null || true
 
       - name: Download Godot and Export Templates
         run: |
@@ -41,14 +43,31 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Generate Debug Keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          mkdir -p ~/.local/share/godot/keystores
+          cp debug.keystore ~/.local/share/godot/keystores/debug.keystore
+
       - name: Export APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd /tmp/godot_project
-          # حذف || true تا اگر ارور داد، متوقف شود
+          # ایمپورت پروژه تا فایل‌های GDExtension شناسایی بشن
           /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --editor --quit
+          
+          # تنظیم Keystore در فایل تنظیمات خروجی
+          cat >> export_presets.cfg << 'EOF'
+
+[preset.0.options.debug_keystore]
+keystore_path="~/.local/share/godot/keystores/debug.keystore"
+keystore_user="androiddebugkey"
+keystore_password="android"
+EOF
+
+          # خروجی گرفتن
           /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64 --headless --export-debug "Android" app-debug.apk
 
       - name: Upload APK
