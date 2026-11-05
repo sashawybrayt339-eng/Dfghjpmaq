@@ -23,14 +23,12 @@ jobs:
           if [ $(ls -1 /tmp/godot_project | wc -l) -eq 1 ] && [ -d "/tmp/godot_project/$(ls -1 /tmp/godot_project | head -n 1)" ]; then
             mv /tmp/godot_project/*/* /tmp/godot_project/
           fi
-          ls -la /tmp/godot_project/
 
       - name: Download Godot and Export Templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
           unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
           chmod +x Godot_v4.2.2-stable_linux.x86_64
-          
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
           mkdir -p ~/.local/share/godot/export_templates
           unzip -q Godot_v4.2.2-stable_export_templates.tpz -d ~/.local/share/godot/export_templates/
@@ -53,9 +51,72 @@ jobs:
       - name: Create Export Preset Configuration
         run: |
           cd /tmp/godot_project
-          printf '[preset.0]\nname="Android"\nplatform="Android"\nrunnable=true\nadvanced_options=false\ndedicated_server=false\ncustom_features=""\nexport_filter="all_resources"\ninclude_filter=""\nexclude_filter=""\nexport_path="app-debug.apk"\nencryption_include_filters=""\nencryption_exclude_filters=""\nencrypt_pck=false\nencrypt_directory=false\n\n[preset.0.options]\ngradle_build/use_gradle_build=true\ngradle_build/export_format=0\ngradle_build/min_sdk=""\ngradle_build/target_sdk=""\nkeystore_path="~/.local/share/godot/keystores/debug.keystore"\nkeystore_user="androiddebugkey"\nkeystore_password="android"\n' > export_presets.cfg
+          cat > export_presets.cfg << 'EOF'
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          advanced_options=false
+          dedicated_server=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="app-debug.apk"
+          encryption_include_filters=""
+          encryption_exclude_filters=""
+          encrypt_pck=false
+          encrypt_directory=false
 
-      - name: Export APK with Android Build Template
+          [preset.0.options]
+          custom_template/debug=""
+          custom_template/release=""
+          gradle_build/use_gradle_build=true
+          gradle_build/gradle_build_directory=""
+          gradle_build/android_source_template=""
+          gradle_build/export_format=0
+          architectures/armeabi-v7a=false
+          architectures/arm64-v8a=true
+          architectures/x86=false
+          architectures/x86_64=false
+          keystore/debug="~/.local/share/godot/keystores/debug.keystore"
+          keystore/debug_user="androiddebugkey"
+          keystore/debug_password="android"
+          keystore/release=""
+          keystore/release_user=""
+          keystore/release_password=""
+          version/code=1
+          version/name="1.0"
+          package/unique_name="com.example.vortex"
+          package/name=""
+          package/signed=true
+          package/app_category=2
+          package/retain_data_on_uninstall=false
+          package/exclude_from_recents=false
+          package/show_in_android_tv=false
+          package/show_in_app_library=true
+          package/show_as_launcher_app=false
+          launcher_icons/main_192x192=""
+          launcher_icons/adaptive_foreground_432x432=""
+          launcher_icons/adaptive_background_432x432=""
+          launcher_icons/adaptive_monochrome_432x432=""
+          graphics/opengl_debug=false
+          xr_features/xr_mode=0
+          screen/immersive_mode=true
+          screen/support_small=true
+          screen/support_normal=true
+          screen/support_large=true
+          screen/support_xlarge=true
+          user_data_backup/allow=false
+          command_line/extra_args=""
+          apk_expansion/enable=false
+          apk_expansion/SALT=""
+          apk_expansion/public_key=""
+          permissions/custom_permissions=PackedStringArray()
+          permissions/internet=false
+          EOF
+
+      - name: Export APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -65,10 +126,15 @@ jobs:
         run: |
           cd /tmp/godot_project
           GODOT_BIN=/home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY)/Godot_v4.2.2-stable_linux.x86_64
-          
+
+          # 1. 完整导入项目（触发资源导入）
           $GODOT_BIN --headless --editor --quit || true
-          
-          $GODOT_BIN --headless --export-debug "Android" app-debug.apk --install-android-template
+
+          # 2. 安装Android构建模板（必须放在导出命令之前）
+          $GODOT_BIN --headless --install-android-template || true
+
+          # 3. 执行导出
+          $GODOT_BIN --headless --export-debug "Android" app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
